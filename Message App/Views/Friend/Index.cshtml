@@ -1,0 +1,9 @@
+﻿@model List<ApplicationUser>
+
+<h2>Your Friends</h2>
+<ul>
+	@foreach(var friend in Model)
+	{
+		<li>@friend.UserName</li>
+	}
+</ul>

@@ -1,0 +1,17 @@
+﻿@model List<ApplicationUser>
+
+<h2>Wyszukaj użytkownika</h2>
+<form method="get">
+    <input type="text" name="query" placeholder="Wpisz nazwę">
+    <button type="submit">Szukaj</button>
+</form>
+
+<ul>
+    @foreach (var user in Model)
+    {
+        <li>
+            @user.UserName
+            <a href="@Url.Action("AddFriend", "Friend", new { friendId = user.Id })">Dodaj znajomego</a>
+        </li>
+    }
+</ul>
