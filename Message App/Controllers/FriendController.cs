@@ -24,7 +24,8 @@ namespace Message_App.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             var friends = _context.Friendships
-                .Where(f => f.UserId == user.Id || f.IsAccepted)
+                .Where(f => f.UserId == user.Id || f.FriendId == user.Id)
+                .Where(f => f.IsAccepted == true)
                 .Select(f => f.Friend)
                 .ToList();
 
@@ -37,6 +38,7 @@ namespace Message_App.Controllers
         {
             var users = await _context.Users
                 .Where(u => u.UserName.Contains(query))
+                .Where(u => u.Id != _userManager.GetUserId(User))
                 .ToListAsync();
 
             return View(users);
@@ -50,7 +52,18 @@ namespace Message_App.Controllers
 
             if (friend != null && user.Id != friendId)
             {
-                _context.Friendships.Add(new Friendship
+
+                // Check if the friendship already exists, if so accept friend instead of create new friendship
+                var friendship = await GetFriendshipAsync(user.Id, friendId);
+
+                if (friendship != null)
+                {
+                    friendship.IsAccepted = true;
+                    await _context.SaveChangesAsync();
+                    return RedirectToAction("Index");
+                }
+
+                    _context.Friendships.Add(new Friendship
                 {
                     UserId = user.Id,
                     FriendId = friendId,
@@ -73,6 +86,30 @@ namespace Message_App.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        public async Task<IActionResult> DeleteFriend(string friendId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var friend = await _context.Users.FindAsync(friendId);
+            
+            var friendship = await GetFriendshipAsync(user.Id.ToString(), friendId);
+
+
+            if (friendship != null)
+            {
+                _context.Friendships.Remove(friendship);
+                await _context.SaveChangesAsync();
+            } 
+
+            return RedirectToAction("Index");
+        }
+
+        public async Task<Friendship> GetFriendshipAsync(string userId, string friendId)
+        {
+            return await _context.Friendships.FirstOrDefaultAsync(f =>
+                (f.UserId == userId && f.FriendId == friendId) ||
+                (f.UserId == friendId && f.FriendId == userId));
         }
 
     }
