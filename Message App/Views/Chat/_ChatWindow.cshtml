@@ -1,0 +1,21 @@
+﻿@model IEnumerable<Message>
+@{
+    // Załóżmy, że friendId przekazujemy poprzez ViewBag (możesz to zmienić według potrzeb)
+    string friendId = ViewBag.FriendId;
+}
+<div class="chat-window" data-friend-id="@friendId">
+    <h3>Chat Conversation</h3>
+    <div class="chat-messages">
+        @foreach (var message in Model)
+        {
+            <p>
+                <strong>@message.Sender.UserName:</strong> @message.Content
+            </p>
+        }
+    </div>
+    <div class="chat-input">
+        <input id="messageInput" type="text" placeholder="Enter your message..." />
+        <button id="sendMessageButton" type="button">Send</button>
+    </div>
+</div>
+
