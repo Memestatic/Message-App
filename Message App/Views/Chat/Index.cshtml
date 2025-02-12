@@ -1,23 +1,36 @@
 ﻿@model IEnumerable<ApplicationUser>
 
-<h2>Chat Dashboard</h2>
-
-<div id="friends-list">
-    @foreach (var friend in Model)
-    {
-        <div class="friend-item">
-            <p>@friend.UserName</p>
-            <button class="open-chat" data-friend-id="@friend.Id">Open Chat</button>
+<div class="container">
+    <div class="row">
+        <!-- Friends List Column -->
+        <div class="col-md-4">
+            <h2>Friends List</h2>
+            <div id="friends-list">
+                @foreach (var friend in Model)
+                {
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h5 class="card-title">@friend.UserName</h5>
+                            <button class="btn btn-primary open-chat" data-friend-id="@friend.Id">Open Chat</button>
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
-    }
-</div>
 
-<div id="chat-container">
-    <!-- Chat conversation will be loaded here -->
+        <!-- Chat Conversation Column -->
+        <div class="col-md-8">
+            <h2>Chat Conversation</h2>
+            <div id="chat-container" class="border rounded p-2" style="max-height: 600px; overflow-y: auto;">
+                <!-- Chat messages will be loaded here -->
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.7/signalr.min.js"></script>
     <script>
         $(document).ready(function () {
             $('.open-chat').click(function () {
@@ -28,6 +41,35 @@
                     type: 'GET',
                     success: function (result) {
                         $('#chat-container').html(result);
+
+                        setTimeout(function() {
+                            var $chat = $('.chat-messages');
+                            console.log($chat);
+                            $chat.scrollTop($chat[0].scrollHeight);
+                        }, 100);
+
+                        // Inicjalizacja licznika znaków po załadowaniu chatu
+                        $('#message').on('input', function () {
+                            var maxLength = parseInt($(this).attr('maxlength'));
+                            var remaining = maxLength - $(this).val().length;
+                            var $charCount = $('#charCount');
+
+                            $('#charCount').text(remaining);
+
+                            $charCount.text(remaining + " characters left");
+
+                            if (remaining === 0){
+                                $charCount.css({
+                                    "color": "red",
+									"font-weight": "bold"
+                                });
+                            } else{
+                                $charCount.css({
+                                "color": "",
+                                "font-weight": ""
+                            });
+                            }
+                        });
                     },
                     error: function () {
                         alert('Error loading chat conversation.');
@@ -36,8 +78,6 @@
             });
         });
     </script>
-    <!-- Dołącz bibliotekę SignalR (możesz użyć CDN) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.7/signalr.min.js"></script>
     <script>
         // Create a connection to the SignalR hub.
         const connection = new signalR.HubConnectionBuilder()
@@ -58,14 +98,13 @@
             return console.error(err.toString());
         });
     </script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
         console.log("Script loaded")
         // Event delegation to handle dynamically loaded partial view content.
         $(document).on('click', '#sendMessageButton', function () {
             var chatWindow = $(this).closest('.chat-window');
             var friendId = chatWindow.data('friend-id');
-            var messageContent = chatWindow.find('#messageInput').val();
+            var messageContent = chatWindow.find('#message').val();
             console.log("Send button clicked", friendId, messageContent);
             $.ajax({
                 url: '@Url.Action("SendMessage", "Chat")',

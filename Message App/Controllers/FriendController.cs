@@ -24,9 +24,8 @@ namespace Message_App.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             var friends = _context.Friendships
-                .Where(f => f.UserId == user.Id || f.FriendId == user.Id)
-                .Where(f => f.IsAccepted == true)
-                .Select(f => f.Friend)
+                .Where(f => (f.UserId == user.Id || f.FriendId == user.Id) && f.IsAccepted)
+                .Select(f => f.UserId == user.Id ? f.Friend : f.User)
                 .ToList();
 
             return View(friends);

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Message_App.Controllers
 {
@@ -24,15 +25,15 @@ namespace Message_App.Controllers
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(User);
-
             var friends = _context.Friendships
                 .Where(f => (f.UserId == user.Id || f.FriendId == user.Id) && f.IsAccepted)
-                .Select(f => f.Friend)
+                .Select(f => f.UserId == user.Id ? f.Friend : f.User)
                 .ToList();
 
             return View(friends);
         }
 
+        [Authorize]
         [HttpGet]   
         public async Task<IActionResult> ChatWindow(string friendId)
         {
@@ -40,15 +41,18 @@ namespace Message_App.Controllers
 
             // Fetch chat messages between the current user and the friend.
             var messages = _context.Messages
-                .Where(m => (m.SenderId == user.Id && m.ReceiverId == friendId) ||
-                            (m.SenderId == friendId && m.ReceiverId == user.Id))
-                .OrderBy(m => m.Timestamp)
-                .ToList();
+            .Include(m => m.Sender)     // Dołączamy Sender
+            .Include(m => m.Receiver)   // Dołączamy Receiver
+            .Where(m => (m.SenderId == user.Id && m.ReceiverId == friendId) ||
+                        (m.SenderId == friendId && m.ReceiverId == user.Id))
+            .OrderBy(m => m.Timestamp)
+            .ToList();
 
             ViewBag.FriendId = friendId;
             return PartialView("_ChatWindow", messages);
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> SendMessage(string friendId, string messageContent)
         {

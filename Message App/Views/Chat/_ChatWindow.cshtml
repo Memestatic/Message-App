@@ -4,8 +4,7 @@
     string friendId = ViewBag.FriendId;
 }
 <div class="chat-window" data-friend-id="@friendId">
-    <h3>Chat Conversation</h3>
-    <div class="chat-messages">
+    <div class="chat-messages" style="max-height: 400px; overflow-y: auto;">
         @foreach (var message in Model)
         {
             <p>
@@ -13,9 +12,9 @@
             </p>
         }
     </div>
-    <div class="chat-input">
-        <input id="messageInput" type="text" placeholder="Enter your message..." />
-        <button id="sendMessageButton" type="button">Send</button>
+    <div class="chat-input mt-2">
+        <input id="message" type="text" maxlength="200" class="form-control" placeholder="Enter your message..." />
+        <div><span id="charCount">200 characters left</span></div>
+        <button id="sendMessageButton" type="button" class="btn btn-success mt-2">Send</button>
     </div>
 </div>
-
