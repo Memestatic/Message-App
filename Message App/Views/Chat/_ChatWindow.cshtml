@@ -8,7 +8,7 @@
         @foreach (var message in Model)
         {
             <p>
-                <strong>@message.Sender.UserName:</strong> @message.Content
+                <strong>@message.Sender.FirstName @message.Sender.LastName:</strong> @message.Content
             </p>
         }
     </div>
