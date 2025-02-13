@@ -23,25 +23,50 @@ namespace Message_App.Controllers
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(User);
+
+            // Pobranie listy zaakceptowanych znajomych.
             var friends = _context.Friendships
                 .Where(f => (f.UserId == user.Id || f.FriendId == user.Id) && f.IsAccepted)
                 .Select(f => f.UserId == user.Id ? f.Friend : f.User)
                 .ToList();
 
-            return View(friends);
+            // Pobranie listy oczekujących zaproszeń, gdzie użytkownik jest odbiorcą.
+            var pendingInvitations = _context.Friendships
+                .Where(f => f.FriendId == user.Id && !f.IsAccepted)
+                .ToList();
+
+            // Utworzenie ViewModelu i przekazanie do widoku.
+            var viewModel = new FriendsViewModel
+            {
+                Friends = friends,
+                PendingInvitations = pendingInvitations
+            };
+
+            return View(viewModel);
         }
+
 
         // Search Users
         [Authorize]
         public async Task<IActionResult> Search(string query)
         {
+            var currentUserId = _userManager.GetUserId(User);
+
             var users = await _context.Users
-                .Where(u => u.UserName.Contains(query))
-                .Where(u => u.Id != _userManager.GetUserId(User))
+                .Where(u => u.UserName.Contains(query) && u.Id != currentUserId)
+                .Select(u => new UserSearchResultViewModel
+                {
+                    User = u,
+                    IsFriend = _context.Friendships.Any(f =>
+                        ((f.UserId == currentUserId && f.FriendId == u.Id) ||
+                         (f.FriendId == currentUserId && f.UserId == u.Id))
+                        && f.IsAccepted)
+                })
                 .ToListAsync();
 
             return View(users);
         }
+
 
         // Send a friend request
         public async Task<IActionResult> AddFriend(string friendId)
@@ -57,9 +82,7 @@ namespace Message_App.Controllers
 
                 if (friendship != null)
                 {
-                    friendship.IsAccepted = true;
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction("Index");
+                    AcceptFriendInvitation(friendship.Id);
                 }
 
                     _context.Friendships.Add(new Friendship
@@ -75,12 +98,24 @@ namespace Message_App.Controllers
         }
 
         // Accept a friend request
-        public async Task<IActionResult> AcceptFriend(int friendshipId)
+        public async Task<IActionResult> AcceptFriendInvitation(int invitationId)
         {
-            var friendship = await _context.Friendships.FindAsync(friendshipId);
+            var friendship = await _context.Friendships.FindAsync(invitationId);
             if (friendship != null)
             {
                 friendship.IsAccepted = true;
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        public async Task<IActionResult> RejectFriendInvitation(int invitationId)
+        {
+            var friendship = await _context.Friendships.FindAsync(invitationId);
+            if (friendship != null)
+            {
+                _context.Friendships.Remove(friendship);
                 await _context.SaveChangesAsync();
             }
 

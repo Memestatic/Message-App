@@ -1,10 +1,43 @@
-﻿@model List<ApplicationUser>
+﻿@using Microsoft.IdentityModel.Tokens
+@model FriendsViewModel
 
-<h2>Your Friends</h2>
-<ul>
-	@foreach(var friend in Model)
+<div class="container mt-4">
+	@if (!Model.Friends.IsNullOrEmpty())
 	{
-		<li>@friend.UserName</li>
-		<a href="@Url.Action("DeleteFriend", "Friend", new { friendId = friend.Id })">Delete friend</a>
+		<div class="card mb-4">
+			<div class="card-header">
+				<h2 class="h5 m-0">Your Friends</h2>
+			</div>
+			<ul class="list-group list-group-flush">
+				@foreach(var friend in Model.Friends)
+				{
+					<li class="list-group-item d-flex justify-content-between align-items-center">
+						<span>@friend.UserName</span>
+						<a class="btn btn-danger btn-sm" href="@Url.Action("DeleteFriend", "Friend", new { friendId = friend.Id })">Delete</a>
+					</li>
+				}
+			</ul>
+		</div>
 	}
-</ul>
+
+	@if (!Model.PendingInvitations.IsNullOrEmpty())
+	{
+		<div class="card">
+			<div class="card-header">
+				<h2 class="h5 m-0">Pending Invitations</h2>
+			</div>
+			<ul class="list-group list-group-flush">
+				@foreach(var invitation in Model.PendingInvitations)
+				{
+					<li class="list-group-item d-flex justify-content-between align-items-center">
+						<span>@invitation.Friend.UserName</span>
+						<div>
+							<a class="btn btn-success btn-sm me-2" href="@Url.Action("AcceptFriendInvitation", "Friend", new { invitationId = invitation.Id })">Accept</a>
+							<a class="btn btn-danger btn-sm" href="@Url.Action("RejectFriendInvitation", "Friend", new { invitationId = invitation.Id })">Reject</a>
+						</div>
+					</li>
+				}
+			</ul>
+		</div>
+	}
+</div>

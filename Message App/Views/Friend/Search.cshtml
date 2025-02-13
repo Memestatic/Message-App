@@ -1,17 +1,35 @@
-﻿@model List<ApplicationUser>
+﻿@model List<UserSearchResultViewModel>
 
-<h2>Wyszukaj użytkownika</h2>
-<form method="get">
-    <input type="text" name="query" placeholder="Wpisz nazwę">
-    <button type="submit">Szukaj</button>
-</form>
-
-<ul>
-    @foreach (var user in Model)
-    {
-        <li>
-            @user.UserName
-            <a href="@Url.Action("AddFriend", "Friend", new { friendId = user.Id })">Add friend</a>
-        </li>
-    }
-</ul>
+<div class="container mt-4">
+	<div class="card">
+		<div class="card-header">
+			<h2 class="h5 mb-0">Search for Users</h2>
+		</div>
+		<div class="card-body">
+			<form method="get" class="row g-3 mb-3">
+				<div class="col-md-8">
+					<input type="text" name="query" placeholder="Enter username" class="form-control">
+				</div>
+				<div class="col-md-4">
+					<button type="submit" class="btn btn-primary w-100">Search</button>
+				</div>
+			</form>
+			<ul class="list-group">
+				@foreach (var result in Model)
+				{
+					<li class="list-group-item d-flex justify-content-between align-items-center">
+						<span>@result.User.UserName</span>
+						@if(result.IsFriend)
+						{
+							<button class="btn btn-secondary btn-sm" disabled>Already Friend</button>
+						}
+						else
+						{
+							<a href="@Url.Action("AddFriend", "Friend", new { friendId = result.User.Id })" class="btn btn-success btn-sm">Add friend</a>
+						}
+					</li>
+				}
+			</ul>
+		</div>
+	</div>
+</div>

@@ -41,8 +41,8 @@ namespace Message_App.Controllers
 
             // Fetch chat messages between the current user and the friend.
             var messages = _context.Messages
-            .Include(m => m.Sender)     // Dołączamy Sender
-            .Include(m => m.Receiver)   // Dołączamy Receiver
+            .Include(m => m.Sender)
+            .Include(m => m.Receiver)
             .Where(m => (m.SenderId == user.Id && m.ReceiverId == friendId) ||
                         (m.SenderId == friendId && m.ReceiverId == user.Id))
             .OrderBy(m => m.Timestamp)
