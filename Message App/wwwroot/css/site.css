@@ -33,3 +33,16 @@ body {
     font-size: 0.8rem;
     margin-top: 5px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .animate__animated {
+        /* Ustawiamy d³u¿szy czas trwania animacji, np. 1s */
+        animation-duration: 1s !important;
+        animation-fill-mode: both !important;
+    }
+}
+
+
+.navbar-collapse.collapse {
+    transition: none;
+}
