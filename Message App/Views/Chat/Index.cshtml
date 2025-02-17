@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ApplicationUser>
+﻿@model IEnumerable<FriendWithLastMessageViewModel>
 
 <div class="container">
     <div class="row">
@@ -8,10 +8,25 @@
             <div id="friends-list">
                 @foreach (var friend in Model)
                 {
-                    <div class="card mb-2">
-                        <div class="card-body">
-                            <h5 class="card-title">@friend.FirstName @friend.LastName</h5>
-                            <button class="btn btn-primary open-chat" data-friend-id="@friend.Id">Open Chat</button>
+                    <div class="card mb-2 open-chat" data-friend-id="@friend.Id" style="cursor: pointer;">
+                        <div class="card-body d-flex align-items-center">
+                            <img src="@(!string.IsNullOrEmpty(friend.AvatarUrl) ? friend.AvatarUrl : "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg")"
+                                 alt="avatar" class="friend-avatar" />
+                            <div class="ms-2">
+                                <h5 class="card-title">@friend.FirstName @friend.LastName</h5>
+                                @if(!String.IsNullOrEmpty(friend.LastMessageContent))
+                                {
+                                    <div class="last-message text-muted small">
+                                        <strong>@friend.LastMessageSenderName:</strong> @friend.LastMessageContent
+                                    </div>
+                                    @if (friend.LastMessageDate != null)
+                                    {
+                                        <div class="last-message-date text-muted small">
+                                            @friend.LastMessageDate.Value.ToString("g")
+                                        </div>
+                                    }
+                                }
+                            </div>
                         </div>
                     </div>
                 }
@@ -78,26 +93,59 @@
             });
         });
     </script>
+
     <script>
-        // Create a connection to the SignalR hub.
+        // Upewnij się, że mamy dostęp do ID aktualnego użytkownika.
+        var currentUserId = '@ViewBag.CurrentUserId';
+
+        // Utworzenie połączenia z hubem SignalR.
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/chatHub")
             .build();
 
-        // Receive messages broadcast from the hub.
+        // Obsługa odbierania wiadomości do okna czatu.
         connection.on("ReceiveMessage", function(user, message) {
-            // Append the new message to the chat container.
             let chatContainer = document.getElementById("chat-container");
             let p = document.createElement("p");
             p.innerHTML = `<strong>${user}:</strong> ${message}`;
             chatContainer.appendChild(p);
         });
 
-        // Start the connection.
+        // Obsługa aktualizacji listy znajomych.
+        connection.on("UpdateFriendList", function(conversationPartnerId, messageContent, timestamp, senderId, senderName) {
+            // Jeśli senderId jest równy currentUserId, ustaw "You", w przeciwnym razie użyj senderName.
+            var displayName = (senderId === currentUserId) ? "You" : senderName;
+
+            // Znajdź kartę rozmówcy o odpowiednim data-friend-id.
+            var friendCard = document.querySelector(`.open-chat[data-friend-id='${conversationPartnerId}']`);
+            if (friendCard) {
+                // Znajdź lub utwórz element wyświetlający ostatnią wiadomość.
+                var lastMessageElem = friendCard.querySelector('.last-message');
+                if (!lastMessageElem) {
+                    lastMessageElem = document.createElement("div");
+                    lastMessageElem.classList.add("last-message", "text-muted", "small");
+                    friendCard.querySelector(".card-body .ms-2").appendChild(lastMessageElem);
+                }
+                lastMessageElem.innerHTML = `<strong>${displayName}:</strong> ${messageContent}`;
+
+                // Aktualizacja daty ostatniej wiadomości.
+                var lastMessageDateElem = friendCard.querySelector('.last-message-date');
+                if (!lastMessageDateElem) {
+                    lastMessageDateElem = document.createElement("div");
+                    lastMessageDateElem.classList.add("last-message-date", "text-muted", "small");
+                    friendCard.querySelector(".card-body .ms-2").appendChild(lastMessageDateElem);
+                }
+                var date = new Date(timestamp);
+                lastMessageDateElem.textContent = date.toLocaleString();
+            }
+        });
+
+        // Rozpoczęcie połączenia.
         connection.start().catch(function(err) {
             return console.error(err.toString());
         });
     </script>
+
     <script>
         console.log("Script loaded")
         // Event delegation to handle dynamically loaded partial view content.

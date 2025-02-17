@@ -24,13 +24,30 @@ namespace Message_App.Controllers
         [Authorize]
         public async Task<IActionResult> Index()
         {
-            var user = await _userManager.GetUserAsync(User);
-            var friends = _context.Friendships
-                .Where(f => (f.UserId == user.Id || f.FriendId == user.Id) && f.IsAccepted)
-                .Select(f => f.UserId == user.Id ? f.Friend : f.User)
+            var currentUserId = (await _userManager.GetUserAsync(User)).Id;
+
+            ViewBag.CurrentUserId = currentUserId;
+
+            var friendsWithMessages = _context.Friendships
+                .Where(f => (f.UserId == currentUserId || f.FriendId == currentUserId) && f.IsAccepted)
+                .Select(f => new FriendWithLastMessageViewModel
+                {
+                    Id = f.UserId == currentUserId ? f.Friend.Id : f.User.Id,
+                    FirstName = f.UserId == currentUserId ? f.Friend.FirstName : f.User.FirstName,
+                    LastName = f.UserId == currentUserId ? f.Friend.LastName : f.User.LastName,
+                    AvatarUrl = f.UserId == currentUserId ? f.Friend.AvatarUrl : f.User.AvatarUrl,
+                    LastMessageContent = f.LastMessageContent,
+                    LastMessageDate = string.IsNullOrEmpty(f.LastMessageDate)
+                        ? (DateTime?)null
+                        : DateTime.Parse(f.LastMessageDate),
+                    LastMessageSenderName = f.LastMessageSenderId == currentUserId
+                    ? "You" : (f.UserId == currentUserId ? f.Friend.FirstName : f.User.FirstName),
+
+                    UnreadCount = 0
+                })
                 .ToList();
 
-            return View(friends);
+            return View(friendsWithMessages);
         }
 
         [Authorize]
@@ -74,6 +91,26 @@ namespace Message_App.Controllers
 
             _context.Messages.Add(message);
             await _context.SaveChangesAsync();
+
+            // Update the last message in the friendship
+            var friendship = _context.Friendships.FirstOrDefault(f =>
+            (f.UserId == user.Id && f.FriendId == friendId) ||
+            (f.UserId == friendId && f.FriendId == user.Id));
+
+            if (friendship != null)
+            {
+                friendship.SetLastMessage(messageContent, message.Timestamp.ToString(), user.Id);
+                ViewBag.friendship = friendship;
+                _context.Friendships.Update(friendship);
+                await _context.SaveChangesAsync();
+            }
+
+            await _hubContext.Clients.User(user.Id)
+                .SendAsync("UpdateFriendList", friendId, messageContent, message.Timestamp, user.Id, user.FirstName);
+
+            await _hubContext.Clients.User(friendId)
+                .SendAsync("UpdateFriendList", user.Id, messageContent, message.Timestamp, user.Id, user.FirstName);
+
 
             // Send the message to the friend via SignalR
             await _hubContext.Clients.All.SendAsync("ReceiveMessage", user.UserName, messageContent);

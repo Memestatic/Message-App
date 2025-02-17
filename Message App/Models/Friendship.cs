@@ -18,5 +18,15 @@ namespace Message_App.Models
         public virtual ApplicationUser Friend { get; set; }
 
         public bool IsAccepted { get; set; }
+        public string? LastMessageContent { get; set; }
+        public string? LastMessageDate { get; set; }
+        public string? LastMessageSenderId { get; set; }
+
+        public void SetLastMessage(string content, string date, string senderId)
+        {
+            LastMessageContent = content;
+            LastMessageDate = date;
+            LastMessageSenderId = senderId;
+        }
     }
 }

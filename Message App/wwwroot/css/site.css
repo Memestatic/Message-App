@@ -1,5 +1,6 @@
 html {
-  font-size: 14px;
+    font-size: 14px;
+    scroll-behavior: smooth;
 }
 
 @media (min-width: 768px) {
@@ -19,4 +20,16 @@ html {
 
 body {
   margin-bottom: 60px;
+}
+
+.friend-avatar {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.last-message {
+    font-size: 0.8rem;
+    margin-top: 5px;
 }

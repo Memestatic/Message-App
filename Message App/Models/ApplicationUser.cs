@@ -6,6 +6,7 @@ namespace Message_App.Models
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public string? AvatarUrl { get; set; }
         public virtual ICollection<Friendship> Friends { get; set; }
     }
 }
