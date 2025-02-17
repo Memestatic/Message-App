@@ -1,15 +1,13 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-#nullable disable
-
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
+using System.IO;
 using System.Threading.Tasks;
 using Message_App.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Hosting;
 
 namespace Message_App.Areas.Identity.Pages.Account.Manage
 {
@@ -17,48 +15,36 @@ namespace Message_App.Areas.Identity.Pages.Account.Manage
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IHostEnvironment _hostEnvironment;
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager,
+            IHostEnvironment hostEnvironment)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _hostEnvironment = hostEnvironment;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public string Username { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [TempData]
         public string StatusMessage { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [BindProperty]
         public InputModel Input { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        public string AvatarLink { get; set; } // Dodane: Przechowywanie aktualnego linku avatara
+
         public class InputModel
         {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
             [Phone]
             [Display(Name = "Phone number")]
             public string PhoneNumber { get; set; }
+
+            [Display(Name = "Upload Avatar")]
+            public IFormFile AvatarFile { get; set; } // Dodane: Obs³uga przesy³anego pliku
         }
 
         private async Task LoadAsync(ApplicationUser user)
@@ -67,6 +53,7 @@ namespace Message_App.Areas.Identity.Pages.Account.Manage
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
 
             Username = userName;
+            AvatarLink = user.AvatarUrl; // Pobranie aktualnego linku avatara
 
             Input = new InputModel
             {
@@ -113,6 +100,44 @@ namespace Message_App.Areas.Identity.Pages.Account.Manage
 
             await _signInManager.RefreshSignInAsync(user);
             StatusMessage = "Your profile has been updated";
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostUploadAvatarAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+            }
+
+            if (Input.AvatarFile != null && Input.AvatarFile.Length > 0)
+            {
+                // Tworzenie œcie¿ki zapisu
+                var uploadsFolder = Path.Combine(_hostEnvironment.ContentRootPath, "wwwroot", "avatars");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                // Tworzenie unikalnej nazwy pliku
+                var fileExtension = Path.GetExtension(Input.AvatarFile.FileName);
+                var fileName = $"{Guid.NewGuid()}{fileExtension}";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                // Zapis pliku na serwerze
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await Input.AvatarFile.CopyToAsync(stream);
+                }
+
+                // Aktualizacja œcie¿ki avatara w bazie danych
+                user.AvatarUrl = $"/avatars/{fileName}";
+                await _userManager.UpdateAsync(user);
+            }
+
+            await _signInManager.RefreshSignInAsync(user);
+            StatusMessage = "Your avatar has been updated";
             return RedirectToPage();
         }
     }
