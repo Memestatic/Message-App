@@ -8,7 +8,13 @@
         @foreach (var message in Model)
         {
             <p>
-                <strong>@message.Sender.FirstName @message.Sender.LastName:</strong> @message.Content
+                @if (message.SenderId == friendId)
+                {
+                    <strong> @message.Sender.FirstName : </strong>
+                } else {
+                    <strong> Me: </strong>
+                }
+                @message.Content
             </p>
         }
     </div>

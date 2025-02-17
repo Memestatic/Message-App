@@ -35,7 +35,7 @@ namespace Message_App.Areas.Identity.Pages.Account.Manage
         [BindProperty]
         public InputModel Input { get; set; }
 
-        public string AvatarLink { get; set; } // Dodane: Przechowywanie aktualnego linku avatara
+        public string AvatarLink { get; set; } // Aktualny link do avatara
 
         public class InputModel
         {
@@ -44,7 +44,7 @@ namespace Message_App.Areas.Identity.Pages.Account.Manage
             public string PhoneNumber { get; set; }
 
             [Display(Name = "Upload Avatar")]
-            public IFormFile AvatarFile { get; set; } // Dodane: Obs³uga przesy³anego pliku
+            public IFormFile AvatarFile { get; set; } // Obs³uga przesy³anego pliku
         }
 
         private async Task LoadAsync(ApplicationUser user)
@@ -113,19 +113,26 @@ namespace Message_App.Areas.Identity.Pages.Account.Manage
 
             if (Input.AvatarFile != null && Input.AvatarFile.Length > 0)
             {
-                // Tworzenie œcie¿ki zapisu
+                // Tworzenie katalogu "avatars" w wwwroot
                 var uploadsFolder = Path.Combine(_hostEnvironment.ContentRootPath, "wwwroot", "avatars");
                 if (!Directory.Exists(uploadsFolder))
                 {
                     Directory.CreateDirectory(uploadsFolder);
                 }
 
-                // Tworzenie unikalnej nazwy pliku
+                // Normalizacja nazwy pliku: e-mail -> unikanie znaków specjalnych
+                var sanitizedEmail = user.Email.Replace("@", "_at_").Replace(".", "_dot_");
                 var fileExtension = Path.GetExtension(Input.AvatarFile.FileName);
-                var fileName = $"{Guid.NewGuid()}{fileExtension}";
+                var fileName = $"{sanitizedEmail}{fileExtension}";
                 var filePath = Path.Combine(uploadsFolder, fileName);
 
-                // Zapis pliku na serwerze
+                // Usuniêcie poprzedniego pliku (jeœli istnieje)
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                // Zapis nowego pliku na serwerze
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await Input.AvatarFile.CopyToAsync(stream);
