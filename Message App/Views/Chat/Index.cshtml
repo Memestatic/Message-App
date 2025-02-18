@@ -8,15 +8,21 @@
             <div id="friends-list">
                 @foreach (var friend in Model)
                 {
-                    <div class="card mb-2 open-chat" data-friend-id="@friend.Id" style="cursor: pointer;">
+                    <div class="card mb-2 open-chat @(friend.UnreadCount > 0 ? "unread" : "")" data-friend-id="@friend.Id" style="cursor: pointer;">
                         <div class="card-body d-flex align-items-center">
                             <img src="@(!string.IsNullOrEmpty(friend.AvatarUrl) ? friend.AvatarUrl : "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg")"
                                  alt="avatar" class="friend-avatar" />
                             <div class="ms-2">
-                                <h5 class="card-title">@friend.FirstName @friend.LastName</h5>
-                                @if(!String.IsNullOrEmpty(friend.LastMessageContent))
+                                <h5 class="card-title">
+                                    @friend.FirstName @friend.LastName
+                                    @if (friend.UnreadCount > 0)
+                                    {
+                                        <span class="badge bg-danger">@friend.UnreadCount</span>
+                                    }
+                                </h5>
+                                @if (!String.IsNullOrEmpty(friend.LastMessageContent))
                                 {
-                                    <div class="last-message text-muted small">
+                                    <div class="last-message text-muted small @(friend.UnreadCount > 0 ? "fw-bold" : "")">
                                         <strong>@friend.LastMessageSenderName:</strong> @friend.LastMessageContent
                                     </div>
                                     @if (friend.LastMessageDate != null)
@@ -29,6 +35,7 @@
                             </div>
                         </div>
                     </div>
+
                 }
             </div>
         </div>
@@ -103,13 +110,23 @@
             .withUrl("/chatHub")
             .build();
 
-        // Obsługa odbierania wiadomości do okna czatu.
-        connection.on("ReceiveMessage", function(user, message) {
-            let chatContainer = document.getElementById("chat-container");
-            let p = document.createElement("p");
-            p.innerHTML = `<strong>${user}:</strong> ${message}`;
-            chatContainer.appendChild(p);
+                connection.on("ReceiveMessage", function(senderId, receiverId, senderName, message) {
+            let chatWindows = document.querySelectorAll(`.chat-window[data-friend-id="${senderId}"], .chat-window[data-friend-id="${receiverId}"]`);
+
+            chatWindows.forEach(chatWindow => {
+                let chatMessages = chatWindow.querySelector(".chat-messages");
+
+                if (chatMessages) {
+                    let p = document.createElement("p");
+                    p.innerHTML = `<strong>${senderId === currentUserId ? "Me" : senderName}:</strong> ${message}`;
+                    chatMessages.appendChild(p);
+
+                    // Automatyczne przewinięcie na dół
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            });
         });
+
 
         // Obsługa aktualizacji listy znajomych.
         connection.on("UpdateFriendList", function(conversationPartnerId, messageContent, timestamp, senderId, senderName) {
@@ -158,21 +175,17 @@
                 url: '@Url.Action("SendMessage", "Chat")',
                 type: 'POST',
                 data: { friendId: friendId, messageContent: messageContent },
-                success: function (result) {
-                    if(result.success) {
-                        // Reload the chat conversation to display the new message
-                        $.ajax({
-                            url: '@Url.Action("ChatWindow", "Chat")',
-                            data: { friendId: friendId },
-                            type: 'GET',
-                            success: function (chatResult) {
-                                $('#chat-container').html(chatResult);
-                            },
-                            error: function () {
-                                alert('Error reloading chat conversation.');
-                            }
-                        });
-                    }
+                        success: function (result) {
+            if(result.success) {
+                var chatWindow = $('#sendMessageButton').closest('.chat-window');
+                var chatMessages = chatWindow.find('.chat-messages');
+
+                var messageHtml = `<p><strong>Me:</strong> ${messageContent}</p>`;
+                chatMessages.append(messageHtml);
+                chatMessages.scrollTop(chatMessages.prop("scrollHeight"));
+
+                chatWindow.find('#message').val(''); // Wyczyść pole wiadomości
+                }
                 },
                 error: function () {
                     alert('Error sending message.');
@@ -181,5 +194,48 @@
         });
     </script>
 
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".friend-avatar").forEach(img => {
+                const defaultAvatar = "avatars/default.jpg";
+                const testImg = new Image();
+                testImg.src = img.src;
 
+                testImg.onerror = function () {
+                    img.src = defaultAvatar;
+                };
+            });
+        });
+
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".open-chat").forEach(chatItem => {
+                chatItem.addEventListener("click", function () {
+                    const chatId = this.dataset.friendId;
+
+                    // Usuń klasę 'unread' i pogrubienie po otwarciu czatu
+                    this.classList.remove("unread");
+                    const lastMessage = this.querySelector(".last-message");
+                    if (lastMessage) {
+                        lastMessage.classList.remove("fw-bold");
+                    }
+
+                    // Ukryj plakietkę z liczbą wiadomości
+                    const badge = this.querySelector(".badge");
+                    if (badge) {
+                        badge.remove();
+                    }
+
+                    // Wysyłamy żądanie do backendu, aby oznaczyć wiadomości jako przeczytane
+                    fetch(`/Chat/MarkAsRead?friendId=${chatId}`, {
+                        method: "POST"
+                    }).catch(error => console.error("Błąd oznaczania jako przeczytane:", error));
+                });
+            });
+        });
+
+
+    </script>
 }

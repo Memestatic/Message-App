@@ -36,13 +36,26 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
     .animate__animated {
-        /* Ustawiamy d³u¿szy czas trwania animacji, np. 1s */
         animation-duration: 1s !important;
         animation-fill-mode: both !important;
     }
 }
 
-
 .navbar-collapse.collapse {
     transition: none;
 }
+
+.unread {
+    background-color: #f8f9fa;
+}
+
+.unread .last-message {
+    font-weight: bold;
+}
+
+.badge {
+    font-size: 0.8rem;
+    padding: 3px 6px;
+    border-radius: 10px;
+}
+

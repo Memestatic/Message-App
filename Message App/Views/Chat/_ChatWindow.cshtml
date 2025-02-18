@@ -1,6 +1,5 @@
 ﻿@model IEnumerable<Message>
 @{
-    // Załóżmy, że friendId przekazujemy poprzez ViewBag (możesz to zmienić według potrzeb)
     string friendId = ViewBag.FriendId;
 }
 <div class="chat-window" data-friend-id="@friendId">

@@ -42,13 +42,36 @@ namespace Message_App.Controllers
                         : DateTime.Parse(f.LastMessageDate),
                     LastMessageSenderName = f.LastMessageSenderId == currentUserId
                     ? "You" : (f.UserId == currentUserId ? f.Friend.FirstName : f.User.FirstName),
-
-                    UnreadCount = 0
+                    UnreadCount = f.UserId == currentUserId ? 0 : f.UnreadCount
                 })
                 .ToList();
 
+            int unreadChatsCount = friendsWithMessages.Count(f => f.UnreadCount > 0);
+            ViewBag.UnreadChatsCount = unreadChatsCount;
+
             return View(friendsWithMessages);
         }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> MarkAsRead(string friendId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            var friendship = _context.Friendships.FirstOrDefault(f =>
+                (f.UserId == user.Id && f.FriendId == friendId) ||
+                (f.UserId == friendId && f.FriendId == user.Id));
+
+            if (friendship != null)
+            {
+                friendship.UnreadCount = 0;  // Reset licznika
+                _context.Friendships.Update(friendship);
+                await _context.SaveChangesAsync();
+            }
+
+            return Json(new { success = true });
+        }
+
 
         [Authorize]
         [HttpGet]   
@@ -101,6 +124,12 @@ namespace Message_App.Controllers
             {
                 friendship.SetLastMessage(messageContent, message.Timestamp.ToString(), user.Id);
                 ViewBag.friendship = friendship;
+
+                if (friendship.FriendId == friendId)
+                {
+                    friendship.UnreadCount += 1;
+                }
+
                 _context.Friendships.Update(friendship);
                 await _context.SaveChangesAsync();
             }
@@ -113,7 +142,10 @@ namespace Message_App.Controllers
 
 
             // Send the message to the friend via SignalR
-            await _hubContext.Clients.All.SendAsync("ReceiveMessage", user.UserName, messageContent);
+            var friend = await _context.FindAsync<ApplicationUser>(friendId);
+
+            await _hubContext.Clients.Users(user.Id, friendId)
+                .SendAsync("ReceiveMessage", user.Id, friendId, friend.FirstName, messageContent);
 
             // Optionally, return a JSON response indicating success
             return Json(new { success = true, message = "Message sent successfully." });

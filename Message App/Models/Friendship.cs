@@ -22,6 +22,8 @@ namespace Message_App.Models
         public string? LastMessageDate { get; set; }
         public string? LastMessageSenderId { get; set; }
 
+        public int UnreadCount { get; set; }
+
         public void SetLastMessage(string content, string date, string senderId)
         {
             LastMessageContent = content;
