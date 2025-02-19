@@ -144,7 +144,7 @@ namespace Message_App.Controllers
             // Send the message to the friend via SignalR
             var friend = await _context.FindAsync<ApplicationUser>(friendId);
 
-            await _hubContext.Clients.Users(user.Id, friendId)
+            await _hubContext.Clients.User(friendId)
                 .SendAsync("ReceiveMessage", user.Id, friendId, friend.FirstName, messageContent);
 
             // Optionally, return a JSON response indicating success

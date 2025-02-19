@@ -24,6 +24,8 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddSignalR();
 
+builder.WebHost.UseUrls("https://0.0.0.0:7125");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

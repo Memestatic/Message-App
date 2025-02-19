@@ -1,4 +1,9 @@
-﻿@model IEnumerable<FriendWithLastMessageViewModel>
+﻿@{
+    ViewData["Title"] = "Chats";
+}
+
+@using Microsoft.AspNetCore.Components.Web
+@model IEnumerable<FriendWithLastMessageViewModel>
 
 <div class="container">
     <div class="row">
@@ -110,33 +115,28 @@
             .withUrl("/chatHub")
             .build();
 
-                connection.on("ReceiveMessage", function(senderId, receiverId, senderName, message) {
+        // Obsługa zdarzenia ReceiveMessage – aktualizacja okna czatu (jeśli otwarte)
+        connection.on("ReceiveMessage", function(senderId, receiverId, senderName, message) {
             let chatWindows = document.querySelectorAll(`.chat-window[data-friend-id="${senderId}"], .chat-window[data-friend-id="${receiverId}"]`);
-
             chatWindows.forEach(chatWindow => {
                 let chatMessages = chatWindow.querySelector(".chat-messages");
-
                 if (chatMessages) {
                     let p = document.createElement("p");
                     p.innerHTML = `<strong>${senderId === currentUserId ? "Me" : senderName}:</strong> ${message}`;
                     chatMessages.appendChild(p);
-
                     // Automatyczne przewinięcie na dół
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 }
             });
         });
 
-
-        // Obsługa aktualizacji listy znajomych.
+        // Obsługa zdarzenia UpdateFriendList – aktualizacja listy znajomych
         connection.on("UpdateFriendList", function(conversationPartnerId, messageContent, timestamp, senderId, senderName) {
-            // Jeśli senderId jest równy currentUserId, ustaw "You", w przeciwnym razie użyj senderName.
             var displayName = (senderId === currentUserId) ? "You" : senderName;
-
-            // Znajdź kartę rozmówcy o odpowiednim data-friend-id.
+            // Znajdź kartę znajomego (element .open-chat)
             var friendCard = document.querySelector(`.open-chat[data-friend-id='${conversationPartnerId}']`);
             if (friendCard) {
-                // Znajdź lub utwórz element wyświetlający ostatnią wiadomość.
+                // Znajdź lub utwórz element ostatniej wiadomości
                 var lastMessageElem = friendCard.querySelector('.last-message');
                 if (!lastMessageElem) {
                     lastMessageElem = document.createElement("div");
@@ -145,7 +145,7 @@
                 }
                 lastMessageElem.innerHTML = `<strong>${displayName}:</strong> ${messageContent}`;
 
-                // Aktualizacja daty ostatniej wiadomości.
+                // Aktualizacja daty ostatniej wiadomości
                 var lastMessageDateElem = friendCard.querySelector('.last-message-date');
                 if (!lastMessageDateElem) {
                     lastMessageDateElem = document.createElement("div");
@@ -154,6 +154,30 @@
                 }
                 var date = new Date(timestamp);
                 lastMessageDateElem.textContent = date.toLocaleString();
+
+                // Aktualizacja badge – tylko gdy aktualny użytkownik jest odbiorcą
+                if (senderId !== currentUserId) {
+                    let badge = friendCard.querySelector(".badge");
+                    if (badge) {
+                        let count = parseInt(badge.textContent) || 0;
+                        badge.textContent = count + 1;
+                    } else {
+                        // Jeśli nie ma badge, utwórz go i wstaw obok tytułu
+                        badge = document.createElement("span");
+                        badge.classList.add("badge", "bg-danger");
+                        badge.textContent = "1";
+                        let cardTitle = friendCard.querySelector(".card-title");
+                        if (cardTitle) {
+                            cardTitle.appendChild(badge);
+                        }
+                    }
+                    // Dodaj klasę "unread" do karty i pogrub ostatnią wiadomość
+                    friendCard.classList.add("unread");
+                    let lastMessage = friendCard.querySelector(".last-message");
+                    if (lastMessage) {
+                        lastMessage.classList.add("fw-bold");
+                    }
+                }
             }
         });
 
@@ -162,6 +186,7 @@
             return console.error(err.toString());
         });
     </script>
+
 
     <script>
         console.log("Script loaded")
