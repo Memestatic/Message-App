@@ -75,7 +75,7 @@
                             $chat.scrollTop($chat[0].scrollHeight);
                         }, 100);
 
-                        // Inicjalizacja licznika znaków po załadowaniu chatu
+                        // Initialization of character counter after loading chat
                         $('#message').on('input', function () {
                             var maxLength = parseInt($(this).attr('maxlength'));
                             var remaining = maxLength - $(this).val().length;
@@ -107,15 +107,15 @@
     </script>
 
     <script>
-        // Upewnij się, że mamy dostęp do ID aktualnego użytkownika.
+        // Make sure we have access to the current user's ID
         var currentUserId = '@ViewBag.CurrentUserId';
 
-        // Utworzenie połączenia z hubem SignalR.
+        // Create a connection to the SignalR hub
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/chatHub")
             .build();
 
-        // Obsługa zdarzenia ReceiveMessage – aktualizacja okna czatu (jeśli otwarte)
+        // ReceiveMessage event handling – chat window update (if open)
         connection.on("ReceiveMessage", function(senderId, receiverId, senderName, message) {
             let chatWindows = document.querySelectorAll(`.chat-window[data-friend-id="${senderId}"], .chat-window[data-friend-id="${receiverId}"]`);
             chatWindows.forEach(chatWindow => {
@@ -124,19 +124,19 @@
                     let p = document.createElement("p");
                     p.innerHTML = `<strong>${senderId === currentUserId ? "Me" : senderName}:</strong> ${message}`;
                     chatMessages.appendChild(p);
-                    // Automatyczne przewinięcie na dół
+                    // Automatic scroll to the bottom
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 }
             });
         });
 
-        // Obsługa zdarzenia UpdateFriendList – aktualizacja listy znajomych
+        // Handling the UpdateFriendList event – updating the friends list
         connection.on("UpdateFriendList", function(conversationPartnerId, messageContent, timestamp, senderId, senderName) {
             var displayName = (senderId === currentUserId) ? "You" : senderName;
-            // Znajdź kartę znajomego (element .open-chat)
+            // Fild friend's card
             var friendCard = document.querySelector(`.open-chat[data-friend-id='${conversationPartnerId}']`);
             if (friendCard) {
-                // Znajdź lub utwórz element ostatniej wiadomości
+                // Find or create a recent message item
                 var lastMessageElem = friendCard.querySelector('.last-message');
                 if (!lastMessageElem) {
                     lastMessageElem = document.createElement("div");
@@ -145,7 +145,7 @@
                 }
                 lastMessageElem.innerHTML = `<strong>${displayName}:</strong> ${messageContent}`;
 
-                // Aktualizacja daty ostatniej wiadomości
+                // Last message date's update
                 var lastMessageDateElem = friendCard.querySelector('.last-message-date');
                 if (!lastMessageDateElem) {
                     lastMessageDateElem = document.createElement("div");
@@ -155,14 +155,14 @@
                 var date = new Date(timestamp);
                 lastMessageDateElem.textContent = date.toLocaleString();
 
-                // Aktualizacja badge – tylko gdy aktualny użytkownik jest odbiorcą
+                // Badge update – only if the current user is the recipient
                 if (senderId !== currentUserId) {
                     let badge = friendCard.querySelector(".badge");
                     if (badge) {
                         let count = parseInt(badge.textContent) || 0;
                         badge.textContent = count + 1;
                     } else {
-                        // Jeśli nie ma badge, utwórz go i wstaw obok tytułu
+                        // If there is no badge, create one and insert it next to the title
                         badge = document.createElement("span");
                         badge.classList.add("badge", "bg-danger");
                         badge.textContent = "1";
@@ -171,7 +171,7 @@
                             cardTitle.appendChild(badge);
                         }
                     }
-                    // Dodaj klasę "unread" do karty i pogrub ostatnią wiadomość
+                    // Add the 'unread' class to the tab and bold the last message
                     friendCard.classList.add("unread");
                     let lastMessage = friendCard.querySelector(".last-message");
                     if (lastMessage) {
@@ -181,7 +181,7 @@
             }
         });
 
-        // Rozpoczęcie połączenia.
+        // Connection start
         connection.start().catch(function(err) {
             return console.error(err.toString());
         });
@@ -209,7 +209,7 @@
                 chatMessages.append(messageHtml);
                 chatMessages.scrollTop(chatMessages.prop("scrollHeight"));
 
-                chatWindow.find('#message').val(''); // Wyczyść pole wiadomości
+                chatWindow.find('#message').val(''); // Clear message field
                 }
                 },
                 error: function () {
@@ -240,20 +240,20 @@
                 chatItem.addEventListener("click", function () {
                     const chatId = this.dataset.friendId;
 
-                    // Usuń klasę 'unread' i pogrubienie po otwarciu czatu
+                    // Remove 'unread' class and bold when chat is opened
                     this.classList.remove("unread");
                     const lastMessage = this.querySelector(".last-message");
                     if (lastMessage) {
                         lastMessage.classList.remove("fw-bold");
                     }
 
-                    // Ukryj plakietkę z liczbą wiadomości
+                    // Hide message count badge
                     const badge = this.querySelector(".badge");
                     if (badge) {
                         badge.remove();
                     }
 
-                    // Wysyłamy żądanie do backendu, aby oznaczyć wiadomości jako przeczytane
+                    // We send a request to the backend to mark messages as read
                     fetch(`/Chat/MarkAsRead?friendId=${chatId}`, {
                         method: "POST"
                     }).catch(error => console.error("Błąd oznaczania jako przeczytane:", error));

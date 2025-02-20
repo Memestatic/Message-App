@@ -64,7 +64,7 @@ namespace Message_App.Controllers
 
             if (friendship != null)
             {
-                friendship.UnreadCount = 0;  // Reset licznika
+                friendship.UnreadCount = 0;  // Counter reset
                 _context.Friendships.Update(friendship);
                 await _context.SaveChangesAsync();
             }

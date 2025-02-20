@@ -23,19 +23,16 @@ namespace Message_App.Controllers
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(User);
-
-            // Pobranie listy zaakceptowanych znajomych.
+            
             var friends = _context.Friendships
                 .Where(f => (f.UserId == user.Id || f.FriendId == user.Id) && f.IsAccepted)
                 .Select(f => f.UserId == user.Id ? f.Friend : f.User)
                 .ToList();
-
-            // Pobranie listy oczekujących zaproszeń, gdzie użytkownik jest odbiorcą.
+            
             var pendingInvitations = _context.Friendships
                 .Where(f => f.FriendId == user.Id && !f.IsAccepted)
                 .ToList();
-
-            // Utworzenie ViewModelu i przekazanie do widoku.
+            
             var viewModel = new FriendsViewModel
             {
                 Friends = friends,
@@ -85,7 +82,7 @@ namespace Message_App.Controllers
                     AcceptFriendInvitation(friendship.Id);
                 }
 
-                    _context.Friendships.Add(new Friendship
+                _context.Friendships.Add(new Friendship
                 {
                     UserId = user.Id,
                     FriendId = friendId,

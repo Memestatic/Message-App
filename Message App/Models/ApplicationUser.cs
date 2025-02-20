@@ -8,5 +8,10 @@ namespace Message_App.Models
         public string LastName { get; set; }
         public string? AvatarUrl { get; set; }
         public virtual ICollection<Friendship> Friends { get; set; }
+
+        public ApplicationUser()
+        {
+            this.AvatarUrl = "/avatars/default.jpg";
+        }
     }
 }
