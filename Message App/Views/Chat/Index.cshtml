@@ -195,23 +195,37 @@
             var chatWindow = $(this).closest('.chat-window');
             var friendId = chatWindow.data('friend-id');
             var messageContent = chatWindow.find('#message').val();
+            var fileInput = chatWindow.find('#attachment')[0];
+            
+            var formData = new FormData();
+            formData.append("friendId", friendId);
+            formData.append("messageContent", messageContent);
+            if(fileInput && fileInput.files.length > 0) {
+                formData.append("attachment", fileInput.files[0]);
+            }
+            
             console.log("Send button clicked", friendId, messageContent);
             $.ajax({
                 url: '@Url.Action("SendMessage", "Chat")',
                 type: 'POST',
-                data: { friendId: friendId, messageContent: messageContent },
-                        success: function (result) {
-            if(result.success) {
-                var chatWindow = $('#sendMessageButton').closest('.chat-window');
-                var chatMessages = chatWindow.find('.chat-messages');
-
-                var messageHtml = `<p><strong>Me:</strong> ${messageContent}</p>`;
-                chatMessages.append(messageHtml);
-                chatMessages.scrollTop(chatMessages.prop("scrollHeight"));
-
-                chatWindow.find('#message').val(''); // Clear message field
-                }
+                data: formData,
+                processData: false,    // ważne przy przesyłaniu FormData
+                contentType: false,    // nie ustawiamy nagłówka Content-Type, aby przeglądarka ustawiła go poprawnie
+                success: function (result) {
+                    if(result.success) {
+                        // Używamy chatWindow już pobranego wcześniej
+                        var chatMessages = chatWindow.find('.chat-messages');
+                        var messageHtml = `<p><strong>Me:</strong> ${messageContent}</p>`;
+                        if(result.attachmentUrl) {
+                            messageHtml += `<img src="${result.attachmentUrl}" alt="Attachment" style="max-width:200px; max-height:200px; display:block; margin-top:5px;" />`;
+                        }
+                        chatMessages.append(messageHtml);
+                        chatMessages.scrollTop(chatMessages.prop("scrollHeight"));
+                        chatWindow.find('#message').val('');
+                        chatWindow.find('#attachment').val('');
+                    }
                 },
+
                 error: function () {
                     alert('Error sending message.');
                 }

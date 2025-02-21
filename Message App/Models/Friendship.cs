@@ -9,12 +9,10 @@ namespace Message_App.Models
         public int Id { get; set; }
 
         [ForeignKey("User")]
-        [MaxLength(5)]
         public required string UserId { get; set; }
         public ApplicationUser User { get; set; }
 
         [ForeignKey("Friend")]
-        [MaxLength(5)]
         public required string FriendId { get; set; }
         public ApplicationUser Friend { get; set; }
 
@@ -22,9 +20,7 @@ namespace Message_App.Models
         
         [MaxLength(200)]
         public string? LastMessageContent { get; set; }
-        [MaxLength(20)]
         public string? LastMessageDate { get; set; }
-        [MaxLength(5)]
         public string? LastMessageSenderId { get; set; }
 
         public int UnreadCount { get; set; }

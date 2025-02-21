@@ -13,12 +13,14 @@ namespace Message_App.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
         private readonly IHubContext<ChatHub> _hubContext;
+        private readonly IHostEnvironment _hostEnvironment;
 
-        public ChatController(UserManager<ApplicationUser> userManager, ApplicationDbContext context, IHubContext<ChatHub> hubContext)
+        public ChatController(UserManager<ApplicationUser> userManager, ApplicationDbContext context, IHubContext<ChatHub> hubContext, IHostEnvironment hostEnvironment)
         {
             _userManager = userManager;
             _context = context;
             _hubContext = hubContext;
+            _hostEnvironment = hostEnvironment;
         }
 
         [Authorize]
@@ -94,13 +96,39 @@ namespace Message_App.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<IActionResult> SendMessage(string friendId, string messageContent)
+        public async Task<IActionResult> SendMessage([FromForm] string friendId, [FromForm] string messageContent, [FromForm] IFormFile attachment)
         {
             var user = await _userManager.GetUserAsync(User);
 
-            if (string.IsNullOrWhiteSpace(messageContent))
+            if (string.IsNullOrWhiteSpace(messageContent) && (attachment == null || attachment.Length == 0))
             {
                 return BadRequest("Message content is empty.");
+            }
+
+            string attachmentUrl = null;
+            if (attachment != null && attachment.Length > 0)
+            {
+                try
+                {
+                    var uploadsFolder = Path.Combine(_hostEnvironment.ContentRootPath, "uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(attachment.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await attachment.CopyToAsync(fileStream);
+                    }
+                    attachmentUrl = "/uploads/" + uniqueFileName;
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    // Możesz dodatkowo ustawić attachmentUrl = "" aby uniknąć błędu zapisu do bazy,
+                    // ale lepiej znaleźć przyczynę błędu.
+                }
             }
 
             var message = new Message
@@ -109,7 +137,8 @@ namespace Message_App.Controllers
                 ReceiverId = friendId,
                 Content = messageContent,
                 Timestamp = DateTime.Now,
-                Sender = user
+                Sender = user,
+                AttachmentUrl = attachmentUrl
             };
 
             _context.Messages.Add(message);
@@ -134,21 +163,19 @@ namespace Message_App.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            // Powiadomienia SignalR – przesyłamy także URL załącznika
             await _hubContext.Clients.User(user.Id)
-                .SendAsync("UpdateFriendList", friendId, messageContent, message.Timestamp, user.Id, user.FirstName);
+                .SendAsync("UpdateFriendList", friendId, messageContent, message.Timestamp, user.Id, user.FirstName, attachmentUrl);
 
             await _hubContext.Clients.User(friendId)
-                .SendAsync("UpdateFriendList", user.Id, messageContent, message.Timestamp, user.Id, user.FirstName);
+                .SendAsync("UpdateFriendList", user.Id, messageContent, message.Timestamp, user.Id, user.FirstName, attachmentUrl);
 
-
-            // Send the message to the friend via SignalR
             var friend = await _context.FindAsync<ApplicationUser>(friendId);
 
             await _hubContext.Clients.User(friendId)
-                .SendAsync("ReceiveMessage", user.Id, friendId, friend.FirstName, messageContent);
+                .SendAsync("ReceiveMessage", user.Id, friendId, friend.FirstName, messageContent, attachmentUrl);
 
-            // Optionally, return a JSON response indicating success
-            return Json(new { success = true, message = "Message sent successfully." });
+            return Json(new { success = true, message = "Message sent successfully.", attachmentUrl });
         }
     }
 }

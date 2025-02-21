@@ -18,5 +18,6 @@ namespace Message_App.Models
 
         public string Content { get; set; }
         public DateTime Timestamp { get; set; }
+        public string? AttachmentUrl { get; set; }
     }
 }
