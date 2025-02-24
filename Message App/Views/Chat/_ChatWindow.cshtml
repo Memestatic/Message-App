@@ -1,4 +1,5 @@
-﻿@model IEnumerable<Message>
+﻿@using Microsoft.IdentityModel.Tokens
+@model IEnumerable<Message>
 @{
     string friendId = ViewBag.FriendId;
 }
@@ -15,6 +16,11 @@
                 }
                 @message.Content
             </p>
+            @if (!message.AttachmentUrl.IsNullOrEmpty())
+            {
+                <img src="@message.AttachmentUrl" alt="Attachment Photo"
+                     style="max-width: 200px; max-height: 200px; display: block; margin-top: 5px" />
+            }
         }
     </div>
     <div class="chat-input mt-2">

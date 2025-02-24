@@ -110,7 +110,7 @@ namespace Message_App.Controllers
             {
                 try
                 {
-                    var uploadsFolder = Path.Combine(_hostEnvironment.ContentRootPath, "uploads");
+                    var uploadsFolder = Path.Combine(_hostEnvironment.ContentRootPath, "wwwroot/uploads");
                     if (!Directory.Exists(uploadsFolder))
                     {
                         Directory.CreateDirectory(uploadsFolder);
