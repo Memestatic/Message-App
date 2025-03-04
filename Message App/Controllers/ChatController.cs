@@ -126,8 +126,6 @@ namespace Message_App.Controllers
                 catch(Exception ex)
                 {
                     Console.WriteLine(ex.Message);
-                    // Możesz dodatkowo ustawić attachmentUrl = "" aby uniknąć błędu zapisu do bazy,
-                    // ale lepiej znaleźć przyczynę błędu.
                 }
             }
 
@@ -162,8 +160,7 @@ namespace Message_App.Controllers
                 _context.Friendships.Update(friendship);
                 await _context.SaveChangesAsync();
             }
-
-            // Powiadomienia SignalR – przesyłamy także URL załącznika
+            
             await _hubContext.Clients.User(user.Id)
                 .SendAsync("UpdateFriendList", friendId, messageContent, message.Timestamp, user.Id, user.FirstName, attachmentUrl);
 

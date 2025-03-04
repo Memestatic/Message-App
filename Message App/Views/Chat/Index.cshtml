@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @model IEnumerable<FriendWithLastMessageViewModel>
 
+<link rel="stylesheet" href="css/messages.css"/>
 <div class="container">
     <div class="row">
         <!-- Friends List Column -->
@@ -121,9 +122,16 @@
             chatWindows.forEach(chatWindow => {
                 let chatMessages = chatWindow.querySelector(".chat-messages");
                 if (chatMessages) {
+                    let alignmentClass = (senderId === currentUserId) ? "right" : "left";
+                    let messageContainer = document.createElement("div");
+                    messageContainer.classList.add("message", alignmentClass);
+                    
                     let p = document.createElement("p");
                     p.innerHTML = `<strong>${senderId === currentUserId ? "Me" : senderName}:</strong> ${message}`;
-                    chatMessages.appendChild(p);
+
+                    messageContainer.appendChild(p);
+                    
+                    chatMessages.appendChild(messageContainer);
                     // Automatic scroll to the bottom
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 }
@@ -209,23 +217,24 @@
                 url: '@Url.Action("SendMessage", "Chat")',
                 type: 'POST',
                 data: formData,
-                processData: false,    // ważne przy przesyłaniu FormData
-                contentType: false,    // nie ustawiamy nagłówka Content-Type, aby przeglądarka ustawiła go poprawnie
+                processData: false,
+                contentType: false,
                 success: function (result) {
                     if(result.success) {
-                        // Używamy chatWindow już pobranego wcześniej
                         var chatMessages = chatWindow.find('.chat-messages');
-                        var messageHtml = `<p><strong>Me:</strong> ${messageContent}</p>`;
+                        // Tworzymy kontener dla wiadomości z klasami "message" oraz "right"
+                        var messageHtml = `<div class="message right">
+                                <p><strong>Me:</strong> ${messageContent}</p>`;
                         if(result.attachmentUrl) {
                             messageHtml += `<img src="${result.attachmentUrl}" alt="Attachment" style="max-width:200px; max-height:200px; display:block; margin-top:5px;" />`;
                         }
+                        messageHtml += `</div>`;
                         chatMessages.append(messageHtml);
                         chatMessages.scrollTop(chatMessages.prop("scrollHeight"));
                         chatWindow.find('#message').val('');
                         chatWindow.find('#attachment').val('');
                     }
                 },
-
                 error: function () {
                     alert('Error sending message.');
                 }

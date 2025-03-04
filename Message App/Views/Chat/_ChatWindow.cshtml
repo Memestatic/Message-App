@@ -3,24 +3,27 @@
 @{
     string friendId = ViewBag.FriendId;
 }
+<link rel="stylesheet" href="css/messages.css">
 <div class="chat-window" data-friend-id="@friendId">
     <div class="chat-messages" style="max-height: 400px; overflow-y: auto;">
         @foreach (var message in Model)
         {
-            <p>
-                @if (message.SenderId == friendId)
+            <div class="message @(message.SenderId == friendId ? "left" : "right")" data-timestamp="@message.Timestamp.ToString("g")">
+                <p>
+                    @if (message.SenderId == friendId)
+                    {
+                        <strong> @message.Sender.FirstName : </strong>
+                    } else {
+                        <strong> Me: </strong>
+                    }
+                    @message.Content
+                </p>
+                @if (!message.AttachmentUrl.IsNullOrEmpty())
                 {
-                    <strong> @message.Sender.FirstName : </strong>
-                } else {
-                    <strong> Me: </strong>
+                    <img src="@message.AttachmentUrl" alt="Attachment Photo"
+                         style="max-width: 200px; max-height: 200px; display: block; margin-top: 5px" />
                 }
-                @message.Content
-            </p>
-            @if (!message.AttachmentUrl.IsNullOrEmpty())
-            {
-                <img src="@message.AttachmentUrl" alt="Attachment Photo"
-                     style="max-width: 200px; max-height: 200px; display: block; margin-top: 5px" />
-            }
+            </div>
         }
     </div>
     <div class="chat-input mt-2">
@@ -30,3 +33,7 @@
         <button id="sendMessageButton" type="button" class="btn btn-success mt-2">Send</button>
     </div>
 </div>
+
+<style>
+    
+</style>
