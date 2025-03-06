@@ -117,7 +117,7 @@
             .build();
 
         // ReceiveMessage event handling – chat window update (if open)
-        connection.on("ReceiveMessage", function(senderId, receiverId, senderName, message) {
+        connection.on("ReceiveMessage", function(senderId, receiverId, senderName, message, attachmentUrl) {
             let chatWindows = document.querySelectorAll(`.chat-window[data-friend-id="${senderId}"], .chat-window[data-friend-id="${receiverId}"]`);
             chatWindows.forEach(chatWindow => {
                 let chatMessages = chatWindow.querySelector(".chat-messages");
@@ -128,7 +128,10 @@
                     
                     let p = document.createElement("p");
                     p.innerHTML = `<strong>${senderId === currentUserId ? "Me" : senderName}:</strong> ${message}`;
-
+                    if (attachmentUrl && attachmentUrl.trim() !== ""){
+                        p.innerHTML += `<img src="${attachmentUrl}" alt="Attachment" style="max-width:200px; max-height:200px; display:block; margin-top:5px;" />`;
+                    }
+                    
                     messageContainer.appendChild(p);
                     
                     chatMessages.appendChild(messageContainer);

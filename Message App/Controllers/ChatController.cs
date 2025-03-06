@@ -27,13 +27,13 @@ namespace Message_App.Controllers
         public async Task<IActionResult> Index()
         {
             var currentUserId = (await _userManager.GetUserAsync(User)).Id;
-
             ViewBag.CurrentUserId = currentUserId;
 
             var friendsWithMessages = _context.Friendships
                 .Where(f => (f.UserId == currentUserId || f.FriendId == currentUserId) && f.IsAccepted)
                 .Select(f => new FriendWithLastMessageViewModel
                 {
+                    // Ustalamy, która strona jest rozmówcą:
                     Id = f.UserId == currentUserId ? f.Friend.Id : f.User.Id,
                     FirstName = f.UserId == currentUserId ? f.Friend.FirstName : f.User.FirstName,
                     LastName = f.UserId == currentUserId ? f.Friend.LastName : f.User.LastName,
@@ -42,9 +42,12 @@ namespace Message_App.Controllers
                     LastMessageDate = string.IsNullOrEmpty(f.LastMessageDate)
                         ? (DateTime?)null
                         : DateTime.Parse(f.LastMessageDate),
-                    LastMessageSenderName = f.LastMessageSenderId == currentUserId
-                    ? "You" : (f.UserId == currentUserId ? f.Friend.FirstName : f.User.FirstName),
-                    UnreadCount = f.UserId == currentUserId ? 0 : f.UnreadCount
+                    // Jeśli Ty wysłałeś ostatnią wiadomość, to nazwa to "You", w przeciwnym razie nazwa rozmówcy
+                    LastMessageSenderName = f.LastMessageSenderId == currentUserId 
+                        ? "You" 
+                        : (f.UserId == currentUserId ? f.Friend.FirstName : f.User.FirstName),
+                    // Kluczowa zmiana – licznik nieodczytanych wiadomości pozostaje tylko dla odbiorcy
+                    UnreadCount = f.LastMessageSenderId == currentUserId ? 0 : f.UnreadCount
                 })
                 .ToList();
 
@@ -53,6 +56,7 @@ namespace Message_App.Controllers
 
             return View(friendsWithMessages);
         }
+
 
         [Authorize]
         [HttpPost]
@@ -152,10 +156,11 @@ namespace Message_App.Controllers
                 friendship.SetLastMessage(messageContent, message.Timestamp.ToString(), user.Id);
                 ViewBag.friendship = friendship;
 
-                if (friendship.FriendId == friendId)
+                if (friendId != user.Id)
                 {
                     friendship.UnreadCount += 1;
                 }
+
 
                 _context.Friendships.Update(friendship);
                 await _context.SaveChangesAsync();

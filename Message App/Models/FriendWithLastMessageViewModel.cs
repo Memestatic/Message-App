@@ -9,6 +9,6 @@
         public string LastMessageContent { get; set; }
         public DateTime? LastMessageDate { get; set; }
         public string LastMessageSenderName { get; set; }
-        public int UnreadCount { get; set; } // Opcjonalnie, jeśli chcesz liczyć nieprzeczytane
+        public int UnreadCount { get; set; }
     }
 }
